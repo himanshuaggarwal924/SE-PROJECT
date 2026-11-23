@@ -1,0 +1,21 @@
+# Python 3.10 - 3.13 recommended (tested with 3.12).
+
+# --- Agents & orchestration ---
+langgraph==1.2.12              # graph-based orchestration of the agents
+pydantic>=2.0                  # validating agent output
+json-repair>=0.30              # fixing slightly broken JSON from small models
+pyyaml>=6.0                    # prompt files in /prompts and the user file
+requests>=2.31                 # talking to the local Ollama server (llm_service.py)
+
+# --- Document input ---
+pymupdf==1.28.2                # PDF text extraction
+python-docx==1.2.0             # DOCX text extraction
+
+# --- RAG (local vector search) ---
+sentence-transformers==6.1.0   # local embeddings (all-MiniLM-L6-v2); installs PyTorch (CPU)
+chromadb==1.1.1                # local, persistent vector database
+
+# --- Web UI & login ---
+streamlit==1.64.0              # web UI
+streamlit-authenticator==0.4.2 # login/logout sessions, bcrypt password hashing
+pandas>=2.0                    # tables in the UI

@@ -1,0 +1,12 @@
+# Streamlit settings for this project.
+
+[browser]
+# Don't send anonymous usage statistics to Streamlit - keep everything local.
+gatherUsageStats = false
+
+[server]
+# Largest file that can be uploaded, in MB.
+maxUploadSize = 200
+
+[theme]
+primaryColor = "#1f6feb"

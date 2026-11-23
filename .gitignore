@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Created at runtime
+logs/
+vector_store/
+models/
+
+# Local user accounts (password hashes + cookie secret) - never commit
+auth/users.yaml
+auth/users.tmp
