@@ -1,0 +1,35 @@
+# =============================================================================
+# GOLD STANDARD - DRAFT, TO BE REVIEWED BY THE PROJECT OWNER BEFORE USE.
+# Written by the assistant from documents/payments_platform_spec.md
+# (sections 2-4 only; the rest of the document is not covered yet).
+# =============================================================================
+status: draft
+reviewed_by: ""
+document: payments_platform_spec.md
+scenario: Digital payments platform with instant payments and fraud screening (Northbridge Bank sample)
+
+expected_requirements:
+  - {id: G-01, kind: functional, categories: [functional, performance], statement: "The system shall settle instant domestic payments within 10 seconds, 24 hours a day, 7 days a week."}
+  - {id: G-02, kind: functional, categories: [functional], statement: "The system shall support bulk payments of up to 500 payees uploaded as a CSV file for business customers."}
+  - {id: G-03, kind: functional, categories: [functional, security], statement: "The system shall perform a Confirmation of Payee check before the first payment to a new payee."}
+  - {id: G-04, kind: functional, categories: [functional], statement: "The system shall validate account format, balance, account status, reference length and cut-off time before accepting a payment."}
+  - {id: G-05, kind: functional, categories: [functional, business], statement: "The system shall enforce daily limits of 10,000 for retail and 50,000 for business customers, and 25,000 per instant payment."}
+  - {id: G-06, kind: non_functional, categories: [security], statement: "The system shall require strong customer authentication bound to amount and payee for new payees and payments above 1,000."}
+  - {id: G-07, kind: functional, categories: [security, audit/reporting], statement: "The system shall prevent a business user from approving a payment they created under dual authorisation."}
+  - {id: G-08, kind: non_functional, categories: [performance, security], statement: "The fraud engine shall score every payment within 300 milliseconds before execution."}
+  - {id: G-09, kind: functional, categories: [integration], statement: "All channels shall call the same payment service so rules and limits apply consistently."}
+
+expected_controls: [encryption, multi_factor_authentication, access_control, audit_logging]
+
+expected_sdlc:
+  top1: Agile + DevSecOps
+  acceptable: [Agile + DevSecOps, DevSecOps, Agile + V-Model]
+
+seeded_requirements:
+  - {kind: non_functional, categories: [performance], ambiguous: true, statement: "Payments should be processed in a timely manner."}
+  - {kind: non_functional, categories: [security], ambiguous: true, statement: "Authentication must be robust and seamless."}
+  - {kind: non_functional, categories: [performance], ambiguous: false, statement: "The fraud engine shall return a score within 300 milliseconds."}
+
+seeded_conflicts:
+  - {conflict: true, a: "The system shall limit a single instant payment to 25,000.", b: "The system shall limit a single instant payment to 50,000."}
+  - {conflict: false, a: "The system shall limit a single instant payment to 25,000.", b: "The system shall save up to 200 payees per customer."}

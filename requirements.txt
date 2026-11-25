@@ -2,6 +2,7 @@
 
 # --- Agents & orchestration ---
 langgraph==1.2.12              # graph-based orchestration of the agents
+langgraph-checkpoint-sqlite==3.1.3  # saved run states for pause/resume (human review)
 pydantic>=2.0                  # validating agent output
 json-repair>=0.30              # fixing slightly broken JSON from small models
 pyyaml>=6.0                    # prompt files in /prompts and the user file
@@ -9,7 +10,8 @@ requests>=2.31                 # talking to the local Ollama server (llm_service
 
 # --- Document input ---
 pymupdf==1.28.2                # PDF text extraction
-python-docx==1.2.0             # DOCX text extraction
+python-docx==1.2.0             # DOCX text extraction and the SRS (Word)
+openpyxl==3.1.5                # XLSX artefacts (traceability matrix, registers)
 
 # --- RAG (local vector search) ---
 sentence-transformers==6.1.0   # local embeddings (all-MiniLM-L6-v2); installs PyTorch (CPU)
@@ -18,4 +20,9 @@ chromadb==1.1.1                # local, persistent vector database
 # --- Web UI & login ---
 streamlit==1.64.0              # web UI
 streamlit-authenticator==0.4.2 # login/logout sessions, bcrypt password hashing
+pyotp==2.12.1                  # optional TOTP two-factor authentication (local)
+qrcode==8.2                    # QR code for TOTP enrolment (uses Pillow, already installed by Streamlit)
 pandas>=2.0                    # tables in the UI
+
+# --- Development / tests ---
+pytest>=8.0                    # test suite (python -m pytest)

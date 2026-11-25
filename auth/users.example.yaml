@@ -1,0 +1,22 @@
+# EXAMPLE ONLY - the shape of auth/users.yaml (which is git-ignored and is
+# created automatically on the first run; you never need to copy this file).
+#
+# Passwords and security answers are bcrypt hashes; the 2FA secret is
+# encrypted at rest (Fernet, "enc:v1:..."); the cookie key signs the login
+# cookie. Manage accounts with the app's Sign up page and
+# `python -m auth.manage set-roles <user> <role> ...`.
+
+cookie:
+  name: finreq_auth
+  key: <64 random hex characters, generated automatically>
+  expiry_days: 1
+credentials:
+  usernames:
+    analyst1:
+      name: Example Analyst
+      email: analyst1@example.com
+      password: <bcrypt hash, e.g. $2b$12$...>
+      security_question: What was the name of your first school?
+      security_answer_hash: <bcrypt hash>
+      roles: [analyst]
+      # mfa_secret: enc:v1:<Fernet token>   # only present when 2FA is turned on

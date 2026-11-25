@@ -1,0 +1,36 @@
+# =============================================================================
+# GOLD STANDARD - DRAFT, TO BE REVIEWED BY THE PROJECT OWNER BEFORE USE.
+# Written by the assistant from documents/kyc_aml_onboarding_standard.md.
+# =============================================================================
+status: draft
+reviewed_by: ""
+document: kyc_aml_onboarding_standard.md
+scenario: KYC / AML customer onboarding for a retail bank (Northbridge Bank sample standard)
+
+expected_requirements:
+  - {id: G-01, kind: functional, categories: [functional, regulatory], statement: "The system shall collect full legal name, date of birth, address, nationality and a government ID number."}
+  - {id: G-02, kind: functional, categories: [functional, integration], statement: "The system shall verify identity documents electronically with authenticity and liveness checks."}
+  - {id: G-03, kind: functional, categories: [functional, regulatory], statement: "The system shall verify the address with a document dated within the last 3 months."}
+  - {id: G-04, kind: functional, categories: [regulatory, integration], statement: "The system shall screen every new customer against sanctions and PEP lists before activation."}
+  - {id: G-05, kind: functional, categories: [regulatory], statement: "The system shall re-screen all customers whenever the sanctions lists are updated, at least daily."}
+  - {id: G-06, kind: functional, categories: [regulatory, security], statement: "The system shall never auto-clear a potential sanctions match; matches go to a compliance analyst."}
+  - {id: G-07, kind: functional, categories: [functional, regulatory], statement: "The system shall assign each customer a Low, Medium or High risk rating."}
+  - {id: G-08, kind: functional, categories: [regulatory], statement: "The system shall require enhanced due diligence and senior-management approval for high-risk customers."}
+  - {id: G-09, kind: functional, categories: [regulatory, privacy], statement: "The system shall not reveal to the customer that a suspicious activity report was filed."}
+  - {id: G-10, kind: non_functional, categories: [data-management, audit/reporting], statement: "The system shall keep KYC records and screening results for at least 5 years after the relationship ends."}
+  - {id: G-11, kind: non_functional, categories: [audit/reporting], statement: "Every KYC decision shall be traceable to its evidence, rules version and analyst."}
+
+expected_controls: [audit_logging, data_retention, access_control]
+
+expected_sdlc:
+  top1: Agile + DevSecOps
+  acceptable: [Agile + DevSecOps, Agile + V-Model, DevSecOps]
+
+seeded_requirements:
+  - {kind: non_functional, categories: [performance], ambiguous: true, statement: "Screening should be quick and reliable."}
+  - {kind: functional, categories: [regulatory], ambiguous: true, statement: "The system shall handle risky customers appropriately."}
+  - {kind: functional, categories: [regulatory], ambiguous: false, statement: "The system shall re-screen all customers within 24 hours of a sanctions list update."}
+
+seeded_conflicts:
+  - {conflict: true, a: "The system shall review high-risk customers every 1 year.", b: "The system shall review high-risk customers every 3 years."}
+  - {conflict: false, a: "The system shall review high-risk customers every 1 year.", b: "The system shall collect the customer's nationality."}

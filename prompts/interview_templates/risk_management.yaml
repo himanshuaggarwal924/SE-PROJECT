@@ -1,0 +1,8 @@
+role: risk_management
+display_name: Risk management
+topics:
+  business_objectives: What risks is the business most concerned about with this change?
+  transaction_limits: Which risk limits apply, and what happens when they are exceeded?
+  exceptions: How should high-risk cases be identified and handled?
+  audit_reporting: Which risk reports or indicators must the system produce?
+  performance_availability: What is the impact if the system is unavailable, and for how long is that acceptable?

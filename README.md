@@ -1,213 +1,298 @@
 # Finance Requirements Engineering Agents
 
-A local, agentic AI app that automates two steps of requirements engineering for the finance sector:
+A **fully local**, multi-agent assistant for requirements engineering in finance. It
+interviews stakeholders, extracts and classifies requirements from documents and transcripts,
+finds ambiguity, gaps and conflicts, maps requirements to (sample) rules and policies with
+citations, recommends a ranked SDLC model and a project-specific workflow, and generates the
+SRS, traceability matrix, compliance matrix and risk register. Humans approve every critical
+decision, and everything is written to a tamper-evident audit trail.
 
-1. **Requirements Agent** reads your input and writes functional and non-functional requirements, each with a priority and the reasoning behind it. The input is either a typed description of a finance feature or an uploaded document (PDF, DOCX, TXT or MD).
-2. **SDLC Agent** reads those requirements and recommends an SDLC model (Agile, Waterfall, V-Model, Spiral, DevSecOps or a hybrid). It justifies the choice using risk, regulatory criticality, change frequency, requirement clarity and security.
+- **Local only:** a pre-trained model served by [Ollama](https://ollama.com) (default
+  `llama3.2:3b`), local MiniLM embeddings, local ChromaDB and SQLite. No cloud APIs and no
+  fine-tuning. Sensitive data is masked before any model call.
+- **Deterministic where possible:** citation checks, number grounding, quality rules, SDLC
+  scoring, artefacts and security checks are plain Python. The model is used only for language
+  understanding and generation.
 
-Everything runs **on your machine**:
-- The model is a pre-trained model served by [Ollama](https://ollama.com) (default `llama3.2:3b`). No cloud APIs and no fine-tuning.
-- Document search uses local embeddings and a local vector database.
-- Accounts are stored in a local file, and no emails are sent.
+Progress per phase, with decisions and known limitations: [docs/progress.md](docs/progress.md).
+A complete real run is saved in [demo/final_run/](demo/final_run/) – open it with
+**Requirements analysis → 📂 Load a saved run** (no model needed).
+Problem-statement coverage: [docs/problem_statement_coverage.md](docs/problem_statement_coverage.md).
 
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Inputs
+        T[Typed description]
+        D[Documents<br/>PDF · DOCX · TXT · MD]
+        I[Stakeholder interviews<br/>+ imported notes / emails]
+    end
+    subgraph Security
+        M[Masking<br/>PAN · Aadhaar · card · IFSC<br/>account · phone · email · names]
+        Q[Injection scan<br/>+ quarantine]
+    end
+    subgraph RAG["Retrieval (worker process)"]
+        E[MiniLM embeddings]
+        C[(ChromaDB<br/>documents + KB)]
+        KB[kb/ Markdown<br/>versioned, allowlisted]
+    end
+    subgraph Graph["LangGraph pipeline"]
+        P[prepare_context] --> RA[Requirements] --> QA[Quality &<br/>Clarification] --> CA[Compliance &<br/>Security]
+        CA --> R1{{Human review 1}} --> SA[SDLC] --> R2{{Human review 2}} --> WA[Workflow]
+    end
+    O[(Ollama<br/>llama3.2:3b)]
+    DB[(SQLite<br/>runs · approvals · baselines<br/>history · transcripts · artefacts)]
+    CK[(SQLite checkpoints<br/>pause / resume)]
+    A[Artefacts<br/>SRS · RTM · registers]
+    L[(Hash-chained<br/>audit log)]
+
+    T & D & I --> M --> Q --> P
+    P <--> RAG
+    KB --> C
+    Graph -- llm_service.chat<br/>final masking guard --> O
+    Graph --> CK
+    R1 & R2 --> DB
+    WA --> A
+    Graph --> L
 ```
-              ┌───────────────────── LangGraph ──────────────────────┐
- typed text   │                                                      │
- or document ─┼─► prepare_context ─► requirements_agent ─► sdlc_agent ┼─► results
-              │   (direct or RAG)                                    │
-              └──────────────────────────┬───────────────────────────┘
-                                         ▼
-                              logs/audit_log.jsonl
+
+### The LangGraph flow (with the human-review interrupts)
+
+```mermaid
+stateDiagram-v2
+    [*] --> prepare_context: scenario / document / transcripts (masked)
+    prepare_context --> requirements_agent: [C n] + [KB-n] excerpts
+    requirements_agent --> quality_agent
+    quality_agent --> revise_requirements: High-severity issues\n(optional, max 1 round)
+    revise_requirements --> quality_agent
+    quality_agent --> compliance_agent
+    compliance_agent --> review_requirements
+    state review_requirements {
+        [*] --> paused: interrupt()
+        paused --> [*]: Command(resume=decisions)
+    }
+    review_requirements --> sdlc_agent: rejected items removed
+    sdlc_agent --> review_sdlc
+    state review_sdlc {
+        [*] --> waiting: interrupt()
+        waiting --> [*]: joint vote of 4 roles
+    }
+    review_sdlc --> workflow_agent: approved / chosen model
+    review_sdlc --> [*]: rejected (workflow skipped)
+    workflow_agent --> [*]
+```
+
+The review nodes exist only in `interactive` (web app) and `auto` (`run_demo --auto-approve`)
+mode. A paused run is saved in `data/checkpoints.sqlite` and can be resumed after an app restart.
+
+---
+
+## The agents and who does what
+
+| Component | What it does | Kind |
+|---|---|---|
+| **Stakeholder Interview Agent** | Adaptive chat interview with 9 role templates and 13 topics. Clear answers are judged instantly by rules; only borderline answers go to the model (assessment + follow-up). At most one follow-up per topic; contradictions in amounts are caught. | LLM + rules |
+| **Context preparation** | Small documents are split into `[C n]` excerpts; large ones go through retrieval (5 targeted searches). Interview answers become one excerpt each. Plus `[KB-n]` excerpts from the allowlisted knowledge base. | deterministic + embeddings |
+| **Requirements Agent** | Requirements in batches (count enforced by the output grammar): statement, 13 multi-label categories, stakeholder, justification, priority, dependencies, assumptions, Given/When/Then, KB rules, risk, sources, confidence. Then Python checks citations, numbers and claim support and computes a confidence score. | LLM + deterministic checks |
+| **Quality & Clarification Agent** | Rules first (vague words, unmeasurable NFRs, missing actor or source, duplicates, conflicts), then a model review with questions for the right stakeholder role. Optional single revision round. | LLM + rules |
+| **Compliance & Security Agent** | Maps each requirement to KB rules only, with controls, evidence, gaps, checkpoints and retention/reporting duties. High-impact mappings need a compliance officer. Missing baseline controls (encryption, MFA, audit logging…) become *suggested* requirements. Never a legal determination. | LLM + rules |
+| **SDLC Agent** | The model rates 13 decision factors with evidence (Python suggests likely evidence IDs). Python scores 7 models from `config/sdlc_rules.yaml` using only evidenced factors. The model then explains the ranking without seeing anything else. | LLM + multi-criteria scoring |
+| **Workflow Agent** | Starts from the chosen model's template (`config/sdlc_workflows/`), adds approval gates from earlier agents, and the model adds a few marked, project-specific items. | template + LLM |
+| **Human review** | Accept / reject / edit / regenerate each item; mandatory approvals; joint SDLC vote; versioned baselines; change requests. | human-approval UI |
+| **Artefacts** | SRS (IEEE 830 structure, DOCX + MD), user stories, use cases, process-workflow flowchart whose boxes are requirement IDs (Mermaid), data and interface requirements, traceability matrix, compliance-control matrix, risk register, assumptions and dependencies, open issues (XLSX + CSV, ZIP). | deterministic |
+| **Evaluation** | Gold standard, metrics, single-prompt baseline, dashboard. | deterministic + baseline LLM |
+
+All model calls go through `llm_service.py`. Every agent is a YAML prompt (`prompts/`), a
+Pydantic schema (`agents/schemas.py`) and an entry in `agents/registry.py`, which also declares
+the state fields the agent may read.
+
+---
+
+## Setup (Windows; macOS/Linux are almost identical)
+
+1. **Ollama:** install from <https://ollama.com/download>, then `ollama pull llama3.2:3b` (≈2 GB).
+2. **Python 3.10–3.13** (tested with 3.12). With `uv`:
+   ```powershell
+   pip install uv
+   uv venv --python 3.12 .venv
+   uv pip install --python .venv\Scripts\python.exe -r requirements.txt
+   ```
+   This installs PyTorch (CPU) for the embedding model, a few hundred MB.
+3. **Run:**
+   ```powershell
+   .venv\Scripts\activate
+   streamlit run app.py
+   ```
+   Open <http://localhost:8501>, sign up, and log in.
+4. **Make yourself an administrator** (there is deliberately no automatic admin):
+   ```powershell
+   python -m auth.manage set-roles <your-username> admin analyst project_manager architect security_officer compliance_officer
+   ```
+   For a realistic demo, give the roles to different accounts instead.
+
+### Roles
+
+| Role | Can |
+|---|---|
+| Analyst | review requirements, request changes |
+| Security officer | + decide high-risk security requirements and suggested security requirements, vote on the SDLC choice |
+| Architect | + decide architecture-critical requirements, vote on the SDLC choice |
+| Compliance officer | + approve compliance mappings and suggested requirements, vote on the SDLC choice |
+| Project manager | + decide conflicting stakeholder requirements, vote on the SDLC choice, lock baselines, approve change requests |
+| Admin | knowledge base, users and roles, audit verification, retention purge |
+
+The SDLC choice needs an approving vote from **all four** of project manager, architect,
+security officer and compliance officer.
+
+---
+
+## Using the app
+
+1. **Stakeholder interview** (optional): choose a role and start. Answer in the chat, or skip,
+   edit, end and resume the interview. You can also import questionnaires, emails or meeting
+   notes. Use **Send to analysis** to analyse the transcripts.
+2. **Requirements analysis:** describe the feature, upload a document or pick transcripts.
+   Under *Advanced* you can choose the number of requirements, turn optional agents off (saves
+   time on a CPU) and turn human review on or off. Then click **Run agents**.
+3. **Review 1:** decide each requirement, compliance mapping and suggested requirement. 🔒
+   marks mandatory items and items your role may not decide.
+4. **Review 2:** vote on the SDLC recommendation.
+5. **Results:** tabs per agent, **📦 Artefacts** (downloads + ZIP), **Source & audit**
+   (citations, masking counts, quarantined excerpts, versions, audit events), then
+   **mandatory approvals**, **lock baseline** and **change requests**.
+6. **Projects & history:** project selector, runs, baselines, per-requirement history, and a
+   diff between any two runs or baselines.
+7. **Evaluation:** results of `run_eval.py`. **My account:** roles and optional 2FA.
+   **Knowledge base / Administration:** admin only.
+
+**Speed:** on a CPU-only laptop at about 2–3 tokens/s, a full run with 9 requirements and all
+agents takes 30 minutes or more. Use fewer requirements or turn optional agents off for demos.
+
+### Command line
+
+```powershell
+python run_demo.py --auto-approve --fast --artefacts out\   # non-interactive end-to-end run
+python run_eval.py --docs loan_approval_policy --fast       # evaluation vs baseline
+python run_eval.py --mock                                   # wiring check, seconds, no Ollama
+python -m audit_log verify                                  # check the audit hash chain
+python -m security.retention --days 365 --dry-run           # preview the retention purge
+python -m storage.migrate                                   # import pre-database transcripts
+python -m auth.manage list                                  # users and roles
+python -m pytest                                            # test suite (mock LLM, no Ollama)
 ```
 
 ---
 
-## Tech stack
+## Configuration
 
-| Layer | Technology |
-|---|---|
-| Language | Python 3.12 |
-| LLM | Ollama + `llama3.2:3b` (switchable), called only from `llm_service.py` |
-| Orchestration | LangGraph: agents are graph nodes sharing one state object |
-| Output validation | Pydantic schemas, Ollama structured outputs, json-repair |
-| Document input | PyMuPDF (PDF), python-docx (DOCX), plain text (TXT/MD) |
-| RAG | Sentence Transformers `all-MiniLM-L6-v2` (CPU) + ChromaDB (persistent, local) |
-| Web UI | Streamlit |
-| Login | streamlit-authenticator (bcrypt hashes, session cookie), local `users.yaml` |
-| Audit trail | JSON Lines file with a timestamp and the user for every event |
+Everything is in [config.py](config.py), and most values can be overridden with environment
+variables. The main groups:
+- **Model:** `MODEL_NAME`, `NUM_CTX`, `MAX_OUTPUT_TOKENS`, `TEMPERATURE`, timeouts.
+- **Requirements:** number of requirements, batch size, categories, confidence weights and
+  review threshold (the formula is documented in `config.py`).
+- **RAG and knowledge base:** chunk sizes, excerpt budgets, allowlist (types + sources),
+  applicability keywords.
+- **Quality / compliance / SDLC:** vague words, duplicate and conflict thresholds, revision
+  loop, baseline controls, evidence minimums. The weight/rule table is
+  [config/sdlc_rules.yaml](config/sdlc_rules.yaml); workflow templates are in
+  [config/sdlc_workflows/](config/sdlc_workflows/).
+- **Interviews, evaluation, security:** follow-up limits, KB-pointer threshold, match
+  threshold, masking and quarantine switches, `RETENTION_DAYS`.
+
+Prompts are editable YAML files in [prompts/](prompts/). The knowledge base is Markdown in
+[kb/](kb/) (see [kb/README.md](kb/README.md)).
+
+> **The shipped knowledge-base items are SAMPLE content – illustrative, not authoritative.**
+> They don't quote any real law or regulator. Replace them with authorised text, and add the
+> new sources to `KB_ALLOWED_SOURCES`.
+
+---
+
+## Security notes
+
+- **Masking:** PAN, Aadhaar, card numbers (Luhn-checked), IFSC, account numbers, phone numbers,
+  emails and names in labelled fields are replaced by placeholders (`<PAN_1>`) before anything
+  is logged, embedded or sent to the model. A final guard inside `llm_service.chat()` masks
+  again. Only counts are recorded.
+- **Prompt injection:** all data is wrapped in `<<<DATA>>>` delimiters with a system-prompt
+  rule; suspicious excerpts are quarantined and reported.
+- **Least privilege:** each agent sees only the state fields it declares and may only write its
+  own output.
+- **Audit trail:** `logs/audit_log.jsonl`, with every record hash-chained to the previous one.
+  It includes agent prompts and outputs, human decisions with before/after values, access
+  denials, masking counts, versions and purges. Verify it with `python -m audit_log verify`.
+  Without a secret key the chain detects naive tampering, not an attacker who recomputes every
+  hash.
+- **Accounts:** bcrypt hashes in the git-ignored `auth/users.yaml`; optional TOTP 2FA; login
+  and reset attempts are rate-limited.
+- **Encryption at rest:** Fernet. The key file is kept **outside the repository**
+  (`~/.finreq_agents/secret.key`, or set `FINREQ_KEY_FILE`). It covers 2FA secrets,
+  transcripts, approvals, baselines, change requests, history, stored artefacts, satisfaction
+  comments and the LangGraph checkpoints. **Back the key up: encrypted data can't be read
+  without it.** `python -m security.crypto status` shows the key file;
+  `python -m security.crypto encrypt-existing` encrypts data stored before this was turned on.
+  The audit log stays plaintext so it can be verified (it holds masked text only).
+- **Data:** `data/` (SQLite), `logs/`, `vector_store/` and `models/` are git-ignored, and so are
+  database, key, `.env` and account files anywhere. See `auth/users.example.yaml` for the shape
+  of the accounts file. Retention purge: Administration page or `python -m security.retention`.
+
+---
+
+## Evaluation
+
+`run_eval.py` runs the full system and a **single-prompt, no-RAG baseline** (same model, one
+plain call) on each gold document in `evaluation/gold/`. It reports:
+- requirement precision / recall / F1 (MiniLM matching);
+- category accuracy and completeness;
+- ambiguity- and conflict-detection accuracy on seeded items;
+- regulatory-control coverage;
+- hallucination rate and citation correctness;
+- SDLC top-1 and top-3 accuracy;
+- traceability coverage and time per stage.
+
+The human correction rate comes from the audit log, and the Evaluation page also has a short
+**stakeholder satisfaction form** (1–5 + comment). Results go to `evaluation/results/` (JSON +
+CSV) and the **Evaluation** page.
+
+> The shipped gold files are **drafts** written by the assistant (`status: draft`). Review them
+> before treating the scores as more than provisional.
 
 ---
 
 ## Project structure
 
 ```
-SE Project/
-├── app.py                    # Streamlit entry point: arranges the page (streamlit run app.py)
-├── run_demo.py               # Run the pipeline from the terminal (no UI, no login)
-├── pipeline.py               # run_pipeline(): runs the graph, streams progress, returns results
-├── llm_service.py            # The ONLY code that calls Ollama
-├── config.py                 # All settings: model, limits, RAG sizes, folders
-├── context_loader.py         # Seam between agents and RAG: direct text vs. retrieval
-├── document_reader.py        # Text extraction from PDF / DOCX / TXT / MD
-├── output_parser.py          # Cleans + validates each agent's JSON
-├── audit_log.py              # Timestamped audit trail (logs/audit_log.jsonl)
-├── orchestration/            # LangGraph
-│   ├── state.py              #   the shared state passed between nodes
-│   ├── nodes.py              #   what each node does (prepare context, run an agent)
-│   └── builder.py            #   how nodes are connected  ← add branches/approvals here
-├── agents/
-│   ├── registry.py           # WHICH agents exist, in what order  ← add agents here
-│   ├── prompt_builder.py     # HOW a YAML prompt becomes model messages
-│   └── schemas.py            # WHAT each agent must return (Pydantic)
-├── prompts/                  # Editable prompts, one YAML per agent
-├── rag/
-│   ├── chunker.py            # overlapping chunks
-│   ├── vector_store.py       # embeddings + ChromaDB
-│   └── worker.py             # runs retrieval in a separate process (saves RAM)
-├── auth/
-│   ├── user_store.py         # accounts: sign-up, hashing, security-question reset
-│   └── auth_ui.py            # login / sign-up / reset screens
-├── ui/                       # Streamlit screens (sidebar, input, progress, results)
-├── documents/                # Sample finance documents (demo examples only)
-├── .streamlit/config.toml    # Streamlit settings (usage stats off, upload limit, theme)
-└── requirements.txt
+app.py, run_demo.py, run_eval.py      entry points
+pipeline.py                           run / resume / load runs (review modes)
+llm_service.py                        the only Ollama call site (+ masking guard)
+config.py, config/                    settings; SDLC rules and workflow templates
+agents/                               registry, schemas, prompt builder, agent logic
+orchestration/                        LangGraph builder, nodes, review, revision, regenerate
+checks/                               grounding, confidence, quality rules
+rag/, context_loader.py, kb/          retrieval, knowledge base
+interview/                            interviews, templates, import
+artefacts/                            SRS, stories, use cases, RTM, registers
+evaluation/                           gold, metrics, baseline, runner
+security/                             masking, injection, versions, retention
+storage/                              SQLite app database, baselines, projects, migration
+auth/                                 accounts, roles (RBAC), MFA, login screens
+ui/                                   Streamlit pages
+prompts/                              agent prompts (YAML)
+tests/                                pytest suite with a mock LLM
+docs/                                 progress log, problem-statement coverage
 ```
-
-Created automatically at runtime (and git-ignored):
-- `logs/`: the audit trail.
-- `vector_store/`: the ChromaDB database.
-- `models/`: the embedding model, downloaded once.
-- `auth/users.yaml`: user accounts.
-
----
-
-## Setup (Windows; macOS/Linux are almost identical)
-
-### 1. Install Ollama and pull the model
-1. Install Ollama from <https://ollama.com/download> (or `winget install Ollama.Ollama`). It then runs in the background; look for the llama icon in the system tray.
-2. Pull the model (about 2 GB, one time):
-   ```powershell
-   ollama pull llama3.2:3b
-   ```
-
-### 2. Create the Python environment
-CrewAI is gone, but Python **3.10–3.13** is still recommended (tested with 3.12). If you only have Python 3.14, use `uv` to get 3.12:
-```powershell
-pip install uv
-uv venv --python 3.12 .venv
-uv pip install --python .venv\Scripts\python.exe -r requirements.txt
-```
-This installs PyTorch (CPU version) for the embedding model, so the first install downloads a few hundred MB.
-
-### 3. Run the app
-```powershell
-.venv\Scripts\activate
-streamlit run app.py
-```
-Open <http://localhost:8501>. (If PowerShell blocks `activate`, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.)
-
----
-
-## Using the app
-
-### First time: create an account
-1. Open the **📝 Sign up** tab.
-2. Enter your name, a username, an email, a password (at least 8 characters, with a letter and a number), and a security question with its answer.
-3. Go to **🔑 Log in** and sign in. You stay logged in for 1 day, or until you click **Log out** in the sidebar.
-
-**Forgot your password?** Use the **❓ Forgot password** tab. This is a **local reset**: the app is offline, so it can't send email. Instead, it asks your security question; answer it correctly and you can set a new password. Answers aren't case-sensitive. After 5 wrong answers, the form locks until the app restarts.
-
-### Running the agents
-1. Choose an input:
-   - **✍️ Describe it**: type the finance feature, e.g. *"Loan approval module for a retail bank…"*.
-   - **📄 Use a document**: upload a PDF, DOCX, TXT or MD file, or pick one of the sample documents. You can add an optional **Focus** (e.g. *"Instant payments with fraud screening"*) to say which part of the document to cover. Under the uploader, the app shows the document size and whether it will be used whole or through retrieval.
-2. Click **🚀 Run agents**.
-3. Watch the live progress: each step shows when it finishes. On a CPU-only laptop a run takes about **5–9 minutes**. Don't refresh the page. Inputs are locked during a run, and only one run can happen at a time.
-4. Read the results:
-   - Summary numbers at the top.
-   - A **Requirements** tab with tables for the two requirement types.
-   - An **SDLC** tab with the highlighted recommendation, the rating of each characteristic, the rejected alternatives and recommended practices.
-   - A **Source & audit** tab showing how the document was used and this run's audit log.
-   - A **Download results (JSON)** button.
-
-The sidebar shows whether Ollama is running and lets you switch between installed models.
-
-### Terminal mode (no login)
-```powershell
-python run_demo.py                                 # loan-approval demo using the sample documents
-python run_demo.py my_spec.pdf                     # requirements for your own document
-python run_demo.py my_spec.pdf "KYC onboarding"    # ...focused on one topic
-```
-
----
-
-## How documents are handled (RAG)
-
-`context_loader.py` decides by size:
-
-| Input | What happens |
-|---|---|
-| Only a typed description | No document; the agent works from the description. |
-| Document up to 6,000 characters (`MAX_CONTEXT_CHARS`) | The whole text goes into the prompt. This is fast and nothing is lost. |
-| Larger document | **Retrieval**, described in the steps below. |
-
-The retrieval steps are:
-1. The text is split into ~900-character chunks that overlap by 150 characters.
-2. Each chunk is embedded with `all-MiniLM-L6-v2` on the CPU.
-3. The chunks are stored in ChromaDB (`vector_store/`).
-4. Five searches run: your focus, business rules, security, compliance and performance. The best **6 chunks** (at most) are given to the agent.
-
-Two more details:
-- **Very large documents** are capped at 400,000 characters (`MAX_DOCUMENT_CHARS`, about 150 pages). A document that size takes about 1 minute to index.
-- **Re-using a document** is quicker: each document is indexed once and the stored index is reused.
-
-**Memory:** the embedding libraries need about 600 MB of RAM. They run in a separate short-lived process (`rag/worker.py`), so that memory is released as soon as retrieval finishes and Ollama keeps as much RAM as possible. The embedding model (~90 MB) is downloaded into `models/` on first use, then loads offline.
-
----
-
-## Customising
-
-**Settings:** everything is in [config.py](config.py): model name, context window (`NUM_CTX`), answer length cap, timeouts, and RAG sizes.
-
-**Prompts:** edit the YAML files in [prompts/](prompts/). Changes apply on the next run. Only `{scenario}` and `{reference_context}` may be used in curly braces.
-
-**Add an agent** (e.g. a Compliance Agent):
-1. Add `prompts/compliance_agent.yaml`.
-2. Add a `ComplianceOutput` class in [agents/schemas.py](agents/schemas.py).
-3. Add an `AgentDefinition(..., receives_output_from=["requirements_agent"])` to [agents/registry.py](agents/registry.py).
-
-The builder turns it into a graph node automatically, and it's logged and shown in the UI (as JSON until you add a renderer in `ui/results.py`).
-
-**Branching and approvals:** [orchestration/builder.py](orchestration/builder.py) explains how to replace an edge with `add_conditional_edges()` (e.g. send unclear requirements to a clarification agent), or compile with `interrupt_before=[...]` to pause for human approval. The graph already uses a checkpointer, which is what makes pausing possible.
-
----
-
-## Audit trail
-
-Every run appends records to `logs/audit_log.jsonl`, one JSON object per line:
-- **`pipeline_started`**: the user, model, scenario and source document.
-- **`context_prepared`**: the method (none, direct or retrieval), chunk counts and timing.
-- **`agent_completed`**: one per agent, with its full system and user prompt (including what it received from the previous agent), its output, token counts, timing and any parse error.
-- **`pipeline_finished`** or **`pipeline_failed`**.
-
----
-
-## Security notes
-- Passwords and security answers are stored only as **bcrypt hashes** in `auth/users.yaml`. The file also holds a random secret that signs the login cookie. Don't share or commit it (it's git-ignored).
-- To remove a user, delete their entry under `credentials: usernames:` in `auth/users.yaml`.
-- Streamlit's usage statistics are switched off in `.streamlit/config.toml`, and Hugging Face and ChromaDB telemetry are switched off in code.
-
----
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| Sidebar says "Ollama is not running" | Start the Ollama app (or `ollama serve`), then refresh. |
-| "No models installed" | `ollama pull llama3.2:3b` |
-| Very slow runs | On CPU-only laptops, speed depends mostly on **free RAM**. The model needs about 2.6 GB. Close Chrome tabs and extra VS Code windows, and stop services you don't need (e.g. MySQL). |
-| First document upload is slow | The embedding model (~90 MB) is downloaded once into `models/`. Later runs are offline. |
-| "No text found" for a PDF | It's a scanned image without a text layer. OCR isn't supported. |
-| "The model's answer wasn't valid structured JSON" | Rare, because Ollama's structured outputs force valid JSON. Run again; the raw answer is always shown and logged. |
-| Locked out of an account | Use **Forgot password**. If the security answer is forgotten too, delete the user from `auth/users.yaml` and sign up again. |
-| "Another run is already in progress" | Only one run at a time is allowed (Ollama processes one request at a time). Wait for it to finish. |
+| "Ollama is not running" | Start the Ollama app (or `ollama serve`) and refresh. |
+| Very slow runs | Free RAM (the model needs ≈2.6 GB); fewer requirements; turn optional agents off. |
+| "Another run is already in progress" | One run at a time (Ollama serves one request at a time). |
+| A run waits for review | Open it from "runs waiting for your review"; the right roles must decide. |
+| SDLC review never finishes | All four roles (PM, architect, security, compliance) must vote. |
+| Lost 2FA phone | An admin resets 2FA on the Administration page. |
+| "No text found" in a PDF | Scanned image without a text layer – OCR isn't supported. |

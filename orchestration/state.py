@@ -11,10 +11,13 @@ from typing import Annotated, TypedDict
 
 class AgentOutput(TypedDict):
     """What one agent node writes into the state."""
-    raw: str                  # exactly what the model wrote
-    parsed: dict | None       # validated JSON (None if it couldn't be parsed)
+    raw: str                  # exactly what the model wrote (all calls, joined)
+    parsed: dict | None       # final validated output (None if nothing usable)
     error: str | None         # why parsing failed, if it did
+    status: str               # ok | partial | failed | skipped
+    rendered: str             # the text later agents receive
     elapsed_seconds: float    # how long the agent took
+    calls: int                # how many model calls it made
 
 
 def merge_dicts(old: dict, new: dict) -> dict:
@@ -31,10 +34,19 @@ class PipelineState(TypedDict, total=False):
     scenario: str                  # the finance functionality to analyse (typed or derived)
     source_text: str               # full text of the user's document ("" if none)
     source_name: str               # its file name, for citations and the log
+    options: dict                  # run options, e.g. {"num_functional": 5, "num_non_functional": 4}
+    source_segments: list          # interview answers, one citable excerpt each (or [])
+    pii_masked: dict               # sensitive values masked before any model call, per type
+    versions: dict                 # model / prompt / KB / rules versions of this run
 
     # --- written by the prepare_context node ---
-    reference_context: str         # source material given to the Requirements Agent
+    reference_context: str         # document excerpts [C1]... given to the Requirements Agent
+    kb_context: str                # knowledge-base excerpts [KB-1]... (Requirements Agent)
+    kb_context_full: str           # more KB excerpts (Compliance Agent)
+    revision_count: int            # how many quality-driven revision rounds have run
     context_info: dict             # how that context was prepared (for the UI/log)
+    # Citation ID -> excerpt: {"C1": {"text", "document", "position", "similarity"}}
+    chunk_map: dict
 
     # --- written by the agent nodes: {agent key: AgentOutput} ---
     agent_outputs: Annotated[dict[str, AgentOutput], merge_dicts]

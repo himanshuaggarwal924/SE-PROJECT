@@ -1,0 +1,9 @@
+role: customer
+display_name: Customer / end user
+topics:
+  business_objectives: What do you want to achieve when you use this service?
+  existing_workflow: How do you do this today, and what frustrates you about it?
+  inputs_outputs_rules: What information are you willing to provide, and what do you expect back?
+  exceptions: What should happen if your request can't be completed?
+  authentication_authorisation: How would you like to sign in and confirm important actions?
+  performance_availability: How quickly do you expect an answer, and at what times will you use it?

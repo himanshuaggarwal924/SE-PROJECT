@@ -1,0 +1,46 @@
+# =============================================================================
+# GOLD STANDARD - DRAFT, TO BE REVIEWED BY THE PROJECT OWNER BEFORE USE.
+# Written by the assistant from documents/loan_approval_policy.md; the expected
+# requirements, controls and SDLC choice are a first proposal, not ground truth.
+# =============================================================================
+status: draft
+reviewed_by: ""
+document: loan_approval_policy.md
+scenario: Loan approval module for a retail bank (Northbridge Bank sample policy)
+
+# Requirements a good analysis should produce (matched by meaning, not wording).
+expected_requirements:
+  - {id: G-01, kind: functional, categories: [functional, regulatory], statement: "The system shall verify that the applicant is at least 18, a resident and KYC-verified before any decision."}
+  - {id: G-02, kind: functional, categories: [functional, business], statement: "The system shall decline or refer applications with a debt-to-income ratio above 40%."}
+  - {id: G-03, kind: functional, categories: [functional, integration], statement: "The system shall pull a credit bureau report for every application and refresh reports older than 30 days."}
+  - {id: G-04, kind: functional, categories: [functional, business], statement: "The system shall auto-approve scores of 750 or more, route 650-749 to manual underwriting and decline below 650."}
+  - {id: G-05, kind: functional, categories: [functional, regulatory], statement: "The system shall route every loan above 50,000 to a human underwriter."}
+  - {id: G-06, kind: functional, categories: [functional, regulatory], statement: "The system shall send declined applicants the main reasons within 30 days."}
+  - {id: G-07, kind: functional, categories: [security, audit/reporting], statement: "The system shall prevent an underwriter from approving or overriding a loan they created (four-eyes)."}
+  - {id: G-08, kind: non_functional, categories: [audit/reporting, data-management], statement: "The system shall log all decisions, overrides and data changes with user, timestamp and reason, retained unedited for 7 years."}
+  - {id: G-09, kind: non_functional, categories: [security, privacy], statement: "The system shall encrypt personal and financial data in transit with TLS 1.2+ and at rest with AES-256."}
+  - {id: G-10, kind: non_functional, categories: [performance], statement: "The system shall complete 90% of automatic decisions within 5 minutes."}
+  - {id: G-11, kind: non_functional, categories: [availability/reliability], statement: "The online application channel shall be available 99.9% of each month."}
+  - {id: G-12, kind: non_functional, categories: [operational/maintenance, business], statement: "Interest rate and fee rules shall be configurable without a code release."}
+
+# Baseline security / privacy controls that should be covered (config.COMPLIANCE_BASELINE_CONTROLS keys).
+expected_controls: [encryption, access_control, audit_logging, data_retention]
+
+# Frequent rule changes + heavy regulation + high security risk.
+expected_sdlc:
+  top1: Agile + DevSecOps
+  acceptable: [Agile + DevSecOps, Agile + V-Model, DevSecOps]
+
+# Seeded requirements for ambiguity detection (ambiguous: true = should be flagged).
+seeded_requirements:
+  - {kind: non_functional, categories: [performance], ambiguous: true, statement: "The system shall be fast and user-friendly."}
+  - {kind: non_functional, categories: [security], ambiguous: true, statement: "The system shall be secure."}
+  - {kind: functional, categories: [functional], ambiguous: true, statement: "Loans are checked as appropriate, etc."}
+  - {kind: non_functional, categories: [performance], ambiguous: false, statement: "The system shall complete 90% of automatic decisions within 5 minutes."}
+  - {kind: functional, categories: [functional], ambiguous: false, statement: "The system shall route every loan above 50,000 to a human underwriter."}
+
+# Seeded pairs for conflict detection.
+seeded_conflicts:
+  - {conflict: true, a: "The system shall retain decision logs for 7 years.", b: "The system shall retain decision logs for 3 years."}
+  - {conflict: true, a: "The system shall allow underwriters to override automatic decisions.", b: "The system shall not allow underwriters to override automatic decisions."}
+  - {conflict: false, a: "The system shall retain decision logs for 7 years.", b: "The system shall encrypt data at rest with AES-256."}

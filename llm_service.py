@@ -9,7 +9,7 @@ We use Ollama's own REST API (http://localhost:11434/api/chat) with the
 """
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import requests
 
@@ -22,6 +22,7 @@ class LLMResponse:
     prompt_tokens: int        # how many tokens the prompt used
     output_tokens: int        # how many tokens the model generated
     seconds: float            # how long the call took
+    masked: dict = field(default_factory=dict)   # sensitive values masked by the guard, per type
 
 
 def chat(system_prompt: str, user_prompt: str, model_name: str = config.MODEL_NAME,
@@ -30,7 +31,17 @@ def chat(system_prompt: str, user_prompt: str, model_name: str = config.MODEL_NA
 
     json_schema: if given (and USE_JSON_SCHEMA_FORMAT is on), Ollama forces the
                  answer to be JSON matching this schema.
+
+    Security guard (Phase 9): sensitive values still in the prompts (PAN,
+    Aadhaar, card, account, IFSC, phone, email, names) are masked here, right
+    before the call, whatever code built the prompt.
     """
+    masked = {}
+    if config.MASK_SENSITIVE_DATA:
+        from security.masking import Masker
+        masker = Masker()
+        system_prompt, user_prompt = masker.mask(system_prompt), masker.mask(user_prompt)
+        masked = masker.summary
     payload = {
         "model": model_name,
         "messages": [
@@ -60,6 +71,7 @@ def chat(system_prompt: str, user_prompt: str, model_name: str = config.MODEL_NA
         prompt_tokens=data.get("prompt_eval_count", 0),
         output_tokens=data.get("eval_count", 0),
         seconds=round(time.monotonic() - start, 1),
+        masked=masked,
     )
 
 

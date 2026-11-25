@@ -1,0 +1,8 @@
+role: compliance_legal
+display_name: Compliance / legal
+topics:
+  regulatory_security_constraints: Which regulations and internal policies apply to this process?
+  data_collection_retention: Which records must be kept, and for how long?
+  audit_reporting: What must be reported, to whom and how often?
+  transaction_limits: Which limits or thresholds trigger extra checks or approvals?
+  exceptions: Which situations must be escalated to compliance?

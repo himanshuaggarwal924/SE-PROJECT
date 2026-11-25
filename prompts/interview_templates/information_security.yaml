@@ -1,0 +1,8 @@
+role: information_security
+display_name: Information security
+topics:
+  authentication_authorisation: What authentication strength and access controls are required?
+  data_collection_retention: Which data is sensitive, and how must it be protected and deleted?
+  audit_reporting: Which security events must be logged, and who reviews them?
+  regulatory_security_constraints: Which security policies or standards apply to this system?
+  integrations: Which connections to other systems need extra security controls?

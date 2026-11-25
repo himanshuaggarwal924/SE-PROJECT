@@ -1,0 +1,28 @@
+# =============================================================================
+# EVALUATION BASELINE - "single prompt, no RAG" (evaluation/baseline.py)
+# One plain call: the start of the document, no retrieval, no knowledge base,
+# no citations, no checks, no agents. Used only to compare against the full system.
+#
+# Placeholders: {scenario}, {document}, {count}, {models}
+# =============================================================================
+role: >
+  Business Analyst
+
+goal: >
+  Write software requirements and pick an SDLC model.
+
+backstory: >
+  You write software requirements.
+
+task_description: |
+  FUNCTIONALITY: {scenario}
+
+  DOCUMENT:
+  {document}
+
+  Write {count} software requirements ("The system shall ...") with 1 to 3
+  categories each, and choose the best SDLC model from: {models}.
+
+expected_output: |
+  Return ONLY one JSON object:
+  {"requirements": [{"statement": "The system shall ...", "categories": ["functional"]}], "sdlc_model": "..."}

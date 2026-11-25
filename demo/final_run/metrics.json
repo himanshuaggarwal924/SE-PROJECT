@@ -1,0 +1,51 @@
+{
+  "precision": 0.333,
+  "recall": 0.25,
+  "f1": 0.286,
+  "matched": 3,
+  "generated": 9,
+  "expected": 12,
+  "match_method": "embedding",
+  "match_threshold": 0.6,
+  "category_accuracy": 0.556,
+  "completeness": 0.545,
+  "matches": [
+    {
+      "generated": "The system shall ensure personal and financial data is encrypted in transit and at rest.",
+      "gold": "G-09",
+      "similarity": 0.75
+    },
+    {
+      "generated": "The system shall validate applicant age, identity, and minimum monthly income against the policy.",
+      "gold": "G-01",
+      "similarity": 0.736
+    },
+    {
+      "generated": "The system shall maintain a comprehensive audit log of all decisions, actions, and data changes.",
+      "gold": "G-08",
+      "similarity": 0.679
+    }
+  ],
+  "control_coverage": 1.0,
+  "controls_missing": [],
+  "hallucination_rate": 0.0,
+  "citation_correctness": 1.0,
+  "traceability_coverage": 1.0,
+  "sdlc_top1": 0.0,
+  "sdlc_top3": 1.0,
+  "sdlc_top1_acceptable": 1.0,
+  "sdlc_predicted": "DevSecOps",
+  "ambiguity_accuracy": 1.0,
+  "ambiguity_precision": 1.0,
+  "ambiguity_recall": 1.0,
+  "conflict_accuracy": 1.0,
+  "stage_seconds": {
+    "prepare_context": 85.2,
+    "Requirements Agent": 1251.2,
+    "Quality & Clarification Agent": 700.5,
+    "Compliance & Security Agent": 410.4,
+    "SDLC Agent": 592.3,
+    "Workflow Agent": 405.6
+  },
+  "total_seconds": 3445.2
+}

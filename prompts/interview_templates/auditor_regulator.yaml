@@ -1,0 +1,7 @@
+role: auditor_regulator
+display_name: Auditor / regulator
+topics:
+  audit_reporting: Which evidence do you need to see to confirm the process is controlled?
+  data_collection_retention: How long must records be retained and how quickly must they be produced?
+  regulatory_security_constraints: Which controls will you test during an audit?
+  users_and_roles: How should segregation of duties be demonstrated?

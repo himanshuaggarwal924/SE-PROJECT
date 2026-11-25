@@ -1,0 +1,74 @@
+# =============================================================================
+# Interview topic checklist (edit freely). Every role template picks topics
+# from this list. For each topic:
+#   label         shown in the coverage checklist
+#   description   what a complete answer covers (given to the interview agent)
+#   needs_number  a complete answer should contain a number (limit, time...)
+#   kb_keywords   words used to find knowledge-base sections that make the
+#                 question context-aware (deterministic keyword match)
+# =============================================================================
+business_objectives:
+  label: Business objectives
+  description: the business goal, the problem solved and how success is measured
+  needs_number: false
+  kb_keywords: [objective, purpose]
+users_and_roles:
+  label: Users and roles
+  description: who uses the system, their roles and what each role may do
+  needs_number: false
+  kb_keywords: [role, user, underwriter, customer]
+existing_workflow:
+  label: Existing workflow
+  description: how the process works today, step by step, and its pain points
+  needs_number: false
+  kb_keywords: [process, workflow, routed]
+inputs_outputs_rules:
+  label: Inputs, outputs and business rules
+  description: data coming in and going out, and the rules or decisions applied
+  needs_number: false
+  kb_keywords: [eligibility, decision, rule, check, affordability]
+exceptions:
+  label: Exceptions
+  description: what happens when something goes wrong or a case doesn't fit the rules
+  needs_number: false
+  kb_keywords: [override, exception, declined, escalat, unusual]
+data_collection_retention:
+  label: Data collection and retention
+  description: which personal data is collected, why, and how long it is kept
+  needs_number: true
+  kb_keywords: [retain, retention, record, minimis, delete]
+authentication_authorisation:
+  label: Authentication and authorisation
+  description: how users prove who they are and how access is restricted
+  needs_number: false
+  kb_keywords: [multi-factor, access, privilege, authentication]
+transaction_limits:
+  label: Transaction limits
+  description: amounts, thresholds and limits, and who approves beyond them
+  needs_number: true
+  kb_keywords: [limit, threshold, amount, cut-off]
+audit_reporting:
+  label: Audit and reporting
+  description: what must be logged, reported and to whom, and how often
+  needs_number: false
+  kb_keywords: [audit, log, report, traceable]
+performance_availability:
+  label: Performance and availability
+  description: response times, volumes, uptime and recovery expectations
+  needs_number: true
+  kb_keywords: [availability, response, performance]
+integrations:
+  label: Integrations
+  description: other systems and services it must connect to
+  needs_number: false
+  kb_keywords: [integration, service, bureau, settlement, screening]
+regulatory_security_constraints:
+  label: Regulatory and security constraints
+  description: regulations, policies and security controls that apply
+  needs_number: false
+  kb_keywords: [regulat, compliance, encrypt, due diligence, sanctions]
+schedule_budget:
+  label: Schedule and budget
+  description: deadlines, budget limits and fixed dates
+  needs_number: true
+  kb_keywords: []

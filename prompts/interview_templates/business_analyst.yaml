@@ -1,0 +1,10 @@
+role: business_analyst
+display_name: Business analyst
+topics:
+  business_objectives: What business problem does this solve, and how will success be measured?
+  users_and_roles: Which user groups are involved, and what can each one do?
+  existing_workflow: Can you walk me through the current process step by step?
+  inputs_outputs_rules: Which business rules decide the outcome of each step?
+  exceptions: Which exceptions or edge cases happen most often today?
+  transaction_limits: Which amounts, thresholds or limits apply, and who sets them?
+  integrations: Which systems does the process touch today?

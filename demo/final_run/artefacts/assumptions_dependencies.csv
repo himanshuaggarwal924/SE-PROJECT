@@ -1,0 +1,6 @@
+﻿ID,Type,Requirement,Description,Status
+A-01,Assumption,Run,FR-03,Open
+D-02,Dependency,FR-04,FR-04 depends on FR-01,Open
+D-03,Dependency,FR-04,FR-04 depends on FR-02,Open
+D-04,Dependency,FR-05,FR-05 depends on FR-04,Open
+D-05,Dependency,NFR-04,NFR-04 depends on FR-03,Open

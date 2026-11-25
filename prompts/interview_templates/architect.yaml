@@ -1,0 +1,9 @@
+role: architect
+display_name: Architect / developer
+topics:
+  integrations: Which internal and external systems must this integrate with, and how?
+  performance_availability: What volumes, response times and uptime must the system support?
+  data_collection_retention: Where will the data live, and how long must it be kept?
+  authentication_authorisation: Which identity and access-management services must be used?
+  exceptions: How should failures in downstream systems be handled?
+  regulatory_security_constraints: Which technical standards or constraints are mandatory?

@@ -10,6 +10,7 @@ import yaml
 
 import config
 from agents.registry import AgentDefinition
+from security.injection import DATA_INSTRUCTION, wrap_data
 
 # Every prompt YAML file must contain these keys.
 REQUIRED_PROMPT_KEYS = ["role", "goal", "backstory", "task_description", "expected_output"]
@@ -41,27 +42,31 @@ def fill_placeholders(template: str, variables: dict[str, str]) -> str:
 
 
 def build_messages(definition: AgentDefinition, variables: dict[str, str],
-                   previous_outputs: dict[str, str]) -> tuple[str, str]:
+                   previous_outputs: dict[str, str], prompt_key: str | None = None) -> tuple[str, str]:
     """Build the (system prompt, user prompt) pair for one agent.
 
     variables:        values for the {placeholders}, e.g. {"scenario": "..."}
     previous_outputs: {agent display name: its raw output} for every agent
                       whose output this agent receives (the chain).
+    prompt_key:       use prompts/<prompt_key>.yaml instead of the agent's own
+                      file (for agents whose calls use different prompts).
     """
-    prompt = load_prompt(definition.key)
+    prompt = load_prompt(prompt_key or definition.key)
 
     # The system prompt sets the agent's persona.
     system_prompt = (
         f"You are a {fill_placeholders(prompt['role'].strip(), variables)}.\n"
         f"{fill_placeholders(prompt['backstory'].strip(), variables)}\n"
-        f"Your goal: {fill_placeholders(prompt['goal'].strip(), variables)}"
+        f"Your goal: {fill_placeholders(prompt['goal'].strip(), variables)}\n"
+        f"{DATA_INSTRUCTION}"
     )
 
     # The user prompt holds the task, the previous agents' outputs and the
     # required output format.
     parts = [fill_placeholders(prompt["task_description"].strip(), variables)]
     for agent_name, output in previous_outputs.items():
-        parts.append(f"OUTPUT FROM THE {agent_name.upper()} (your input):\n{output}")
+        parts.append(f"OUTPUT FROM THE {agent_name.upper()} (your input):\n"
+                     + wrap_data(output, f"output of the {agent_name}"))
     parts.append("EXPECTED OUTPUT:\n" + fill_placeholders(prompt["expected_output"].strip(), variables))
     user_prompt = "\n\n".join(parts)
 

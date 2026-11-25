@@ -1,0 +1,8 @@
+role: product_owner
+display_name: Product owner
+topics:
+  business_objectives: What outcome must the first release deliver, and how will you measure it?
+  users_and_roles: Who are the primary users, and which of their needs come first?
+  inputs_outputs_rules: Which features are must-haves versus nice-to-haves?
+  performance_availability: What service levels will customers expect?
+  schedule_budget: What deadlines and budget limits apply to this release?

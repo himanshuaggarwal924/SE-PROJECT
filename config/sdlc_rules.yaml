@@ -1,0 +1,121 @@
+# =============================================================================
+# SDLC selection rules - deterministic multi-criteria scoring (agents/sdlc_scoring.py)
+#
+# SAMPLE weights - illustrative, based on general software-engineering
+# guidance (not a standard). Tune them with your delivery/QA leads.
+#
+# How a model's score is computed:
+#   1. For every factor the model cares about, fit = 1 - |rating - preferred|
+#      with High = 1.0, Medium = 0.5, Low = 0.0  (so a perfect match is 1).
+#   2. Factors a model does NOT list count as neutral (fit 0.5) with
+#      importance `neutral_importance`, so a model that explicitly matches
+#      more of the project's factors ranks above one that matches fewer.
+#   3. score = sum(factor_weight * importance * fit) / sum(factor_weight * importance)
+#      over all 13 factors, as a percentage.
+#   4. Rule adjustments (below) add or subtract percentage points. The
+#      ranking uses this raw value (so ties are rare); the displayed score is
+#      clamped to 0-100.
+# The LLM only RATES the factors; the ranking is pure Python, so the
+# explanation can never contradict it.
+# =============================================================================
+
+levels: {High: 1.0, Medium: 0.5, Low: 0.0}
+neutral_importance: 0.25
+
+# The 13 decision factors and how much each matters overall.
+factor_weights:
+  requirement_stability: 1.0
+  regulatory_criticality: 1.2
+  security_risk: 1.2
+  complexity: 0.8
+  system_size: 0.6
+  legacy_dependence: 0.6
+  change_frequency: 1.0
+  continuous_delivery_need: 0.9
+  stakeholder_availability: 0.7
+  testing_documentation_needs: 1.0
+  budget_schedule_constraints: 0.6
+  formal_verification_need: 1.0
+  failure_consequences: 1.1
+
+# Per model: the factors it cares about -> preferred level (and optional importance).
+models:
+  Waterfall:
+    requirement_stability: {prefer: High, importance: 2}
+    change_frequency: {prefer: Low, importance: 2}
+    stakeholder_availability: Low
+    complexity: Low
+    testing_documentation_needs: High
+    continuous_delivery_need: Low
+    budget_schedule_constraints: High
+
+  V-Model:
+    requirement_stability: High
+    formal_verification_need: {prefer: High, importance: 2}
+    testing_documentation_needs: {prefer: High, importance: 2}
+    regulatory_criticality: High
+    failure_consequences: High
+    change_frequency: Low
+    continuous_delivery_need: Low
+
+  Spiral:
+    complexity: {prefer: High, importance: 2}
+    failure_consequences: High
+    requirement_stability: Low
+    system_size: High
+    legacy_dependence: High
+    budget_schedule_constraints: Low
+
+  Agile:
+    change_frequency: {prefer: High, importance: 2}
+    requirement_stability: {prefer: Low, importance: 2}
+    stakeholder_availability: High
+    continuous_delivery_need: High
+    formal_verification_need: Low
+    testing_documentation_needs: Low
+
+  DevSecOps:
+    security_risk: {prefer: High, importance: 2}
+    continuous_delivery_need: {prefer: High, importance: 2}
+    change_frequency: High
+    regulatory_criticality: High
+    failure_consequences: High
+
+  Agile + V-Model:
+    change_frequency: High
+    formal_verification_need: {prefer: High, importance: 2}
+    testing_documentation_needs: High
+    regulatory_criticality: High
+    stakeholder_availability: High
+    failure_consequences: High
+    requirement_stability: Medium
+
+  Agile + DevSecOps:
+    change_frequency: High
+    security_risk: {prefer: High, importance: 2}
+    continuous_delivery_need: High
+    regulatory_criticality: High
+    stakeholder_availability: High
+    requirement_stability: Medium
+    failure_consequences: High
+
+# Rule adjustments: when ALL conditions hold, add the points to each model.
+rules:
+  - when: {change_frequency: High}
+    adjust: {Waterfall: -15}
+    reason: Frequent change makes a single plan-driven pass costly.
+  - when: {formal_verification_need: High, regulatory_criticality: High}
+    adjust: {V-Model: 3, Agile + V-Model: 3}
+    reason: Regulated systems needing formal verification benefit from paired test levels.
+  - when: {security_risk: High, continuous_delivery_need: High}
+    adjust: {DevSecOps: 3, Agile + DevSecOps: 3}
+    reason: Continuous delivery of a high-risk system needs security built into the pipeline.
+  - when: {regulatory_criticality: High}
+    adjust: {Agile: -8}
+    reason: Pure Agile alone gives weak regulatory evidence (approvals, traceability).
+  - when: {security_risk: High}
+    adjust: {Agile: -5, Waterfall: -5}
+    reason: High security risk needs explicit security activities in every phase.
+  - when: {requirement_stability: Low, complexity: High}
+    adjust: {Spiral: 5, Waterfall: -10}
+    reason: Unclear requirements on a complex system call for risk-driven iteration.

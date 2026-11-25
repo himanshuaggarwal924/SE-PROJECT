@@ -1,0 +1,24 @@
+﻿ID,Requirement,Type,Severity,Description,Question,Ask,Found by,Status
+OI-01,FR-01,incompleteness,Low,The policy is not specified in the requirement.,,,AI,Open
+OI-02,FR-01,clarification question,Medium,,Can you provide the Northbridge Bank sample policy?,Compliance officer,AI,Open
+OI-03,FR-02,inconsistency,Medium,The requirement mentions 'credit assessments' but not 'credit reports'.,,,AI,Open
+OI-04,FR-02,clarification question,Medium,,Should credit reports be included in the credit assessments?,Product owner,AI,Open
+OI-05,FR-03,incompleteness,Low,The requirement does not specify how the system should communicate with applicants.,,,AI,Open
+OI-06,FR-03,clarification question,Medium,,How should the system communicate with applicants?,Product owner,AI,Open
+OI-07,FR-04,infeasibility,High,The requirement is too broad and does not specify how the system should validate and process loan applications.,,,AI,Open
+OI-08,FR-04,clarification question,Medium,,Can you provide more details on how the system should validate and process loan applications?,Compliance officer,AI,Open
+OI-09,FR-05,ambiguity,Medium,Vague term(s) 'secure' without a measurable criterion.,,,rule,Open
+OI-10,FR-05,incompleteness,Medium,Lack of measurable criterion for 'secure' and 'auditable'.,,,AI,Open
+OI-11,FR-05,clarification question,Medium,,What specific security standards or regulations does the system need to comply with?,Compliance officer,AI,Open
+OI-12,NFR-01,lack of testability,Medium,Non-functional requirement has no measurable target value.,,,rule,Open
+OI-13,NFR-01,incompleteness,Medium,Lack of measurable target value for 'personal and financial data encryption'.,,,AI,Open
+OI-14,NFR-01,clarification question,Medium,,What specific encryption algorithms and protocols are allowed by the Northbridge Bank retail loan approval policy?,Information security,AI,Open
+OI-15,NFR-02,ambiguity,Medium,Vague term(s) 'secure' without a measurable criterion.,,,rule,Open
+OI-16,NFR-02,lack of testability,Medium,Non-functional requirement has no measurable target value.,,,rule,Open
+OI-17,NFR-02,incompleteness,Medium,Lack of measurable target value for 'secure access controls and logging'.,,,AI,Open
+OI-18,NFR-02,clarification question,Medium,,What specific access control mechanisms and logging protocols are required by the Northbridge Bank retail loan approval policy?,Information security,AI,Open
+OI-19,NFR-03,lack of testability,Medium,Non-functional requirement has no measurable target value.,,,rule,Open
+OI-20,NFR-03,incompleteness,Medium,Lack of measurable target value for 'logged and auditable decisions and actions'.,,,AI,Open
+OI-21,NFR-03,clarification question,Medium,,What specific logging and auditing requirements are specified in the Northbridge Bank retail loan approval policy?,Compliance officer,AI,Open
+OI-22,NFR-04,inconsistency,Medium,The requirement mentions 'audit and review' but does not specify what this entails.,,,AI,Open
+OI-23,NFR-04,clarification question,Medium,,What specific audit and review activities are required to be recorded?,Compliance officer,AI,Open

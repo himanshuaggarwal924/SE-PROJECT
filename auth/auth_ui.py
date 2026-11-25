@@ -12,6 +12,7 @@ The rest of the app only calls two functions from here:
 import streamlit as st
 import streamlit_authenticator as stauth
 
+import audit_log
 from auth import user_store
 
 MAX_LOGIN_ATTEMPTS = 5
@@ -34,6 +35,7 @@ def require_login() -> stauth.Authenticate:
     Log in / Sign up / Forgot password tabs and stop the page there."""
     authenticator = _create_authenticator()
     if st.session_state.get("authentication_status"):
+        _require_mfa(authenticator)          # stops here until the TOTP code is entered
         return authenticator  # already logged in during this session
 
     login_tab, signup_tab, reset_tab = st.tabs(["🔑 Log in", "📝 Sign up", "❓ Forgot password"])
@@ -55,6 +57,32 @@ def require_login() -> stauth.Authenticate:
     st.stop()  # nothing below require_login() runs until the user logs in
 
 
+def _require_mfa(authenticator: stauth.Authenticate) -> None:
+    """Second step for users who turned on TOTP (Phase 7)."""
+    from auth import mfa
+    username = st.session_state.get("username")
+    secret = user_store.get_mfa_secret(username)
+    if not secret or st.session_state.get("mfa_ok"):
+        return
+    attempts = st.session_state.get("mfa_attempts", 0)
+    st.subheader("🔐 Two-factor authentication")
+    if attempts >= MAX_LOGIN_ATTEMPTS:
+        st.error("Too many wrong codes. Log out and try again.")
+    else:
+        with st.form("mfa"):
+            code = st.text_input("6-digit code from your authenticator app", max_chars=6)
+            if st.form_submit_button("Verify", type="primary"):
+                if mfa.verify(secret, code):
+                    st.session_state["mfa_ok"] = True
+                    audit_log.log_event("auth", "mfa_verified", user=username)
+                    st.rerun()
+                st.session_state["mfa_attempts"] = attempts + 1
+                audit_log.log_event("auth", "mfa_failed", user=username)
+                st.error("That code is not valid.")
+    authenticator.logout("Log out", location="main", callback=_clear_user_data)
+    st.stop()
+
+
 def show_account_box(authenticator: stauth.Authenticate) -> None:
     """Sidebar box with the user's name and a Log out button."""
     st.sidebar.markdown(f"👤 **{st.session_state.get('name')}**  \n"
@@ -66,7 +94,10 @@ def show_account_box(authenticator: stauth.Authenticate) -> None:
 
 def _clear_user_data(_details=None) -> None:
     """Forget the previous user's results when they log out."""
-    for key in ("result", "error", "run_request", "running"):
+    for key in ("result", "error", "run_request", "running", "interview",
+                "selected_transcripts", "send_transcripts", "_pages", "resume_request",
+                "review_drafts", "artefacts", "mfa_ok", "mfa_attempts",
+                "mfa_pending_secret", "project"):
         st.session_state.pop(key, None)
 
 

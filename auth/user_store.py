@@ -26,6 +26,12 @@ SECURITY_QUESTIONS = [
     "What was your childhood nickname?",
 ]
 
+# Roles (Phase 7 enforces them everywhere). Accounts without a "roles"
+# entry - including accounts created before roles existed - are analysts.
+ROLES = ["analyst", "compliance_officer", "security_officer", "project_manager",
+         "architect", "admin"]
+DEFAULT_ROLES = ["analyst"]
+
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,20}$")
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -127,3 +133,66 @@ def reset_password(username: str, security_answer: str, new_password: str) -> No
             raise ValueError("Username or security answer is incorrect.")
         user["password"] = Hasher.hash(new_password)
         save_config(data)
+
+
+# ------------------------------------------------------------------ roles --
+def get_roles(username: str | None) -> list[str]:
+    """The user's roles (["analyst"] if none are set, [] if the user doesn't exist)."""
+    if not username:
+        return []
+    user = load_config()["credentials"]["usernames"].get(username.strip().lower())
+    if user is None:
+        return []
+    return list(user.get("roles") or DEFAULT_ROLES)
+
+
+def has_role(username: str | None, role: str) -> bool:
+    return role in get_roles(username)
+
+
+def set_roles(username: str, roles: list[str]) -> None:
+    """Replace a user's roles. Raises ValueError for unknown users or roles."""
+    unknown = [r for r in roles if r not in ROLES]
+    if unknown:
+        raise ValueError(f"Unknown role(s): {', '.join(unknown)}. Valid: {', '.join(ROLES)}")
+    if not roles:
+        raise ValueError("A user needs at least one role.")
+    with _file_lock:
+        data = load_config()
+        user = data["credentials"]["usernames"].get(username.strip().lower())
+        if user is None:
+            raise ValueError(f"No account named '{username}'.")
+        user["roles"] = list(dict.fromkeys(roles))
+        save_config(data)
+
+
+# -------------------------------------------------------------- MFA (TOTP) --
+def get_mfa_secret(username: str | None) -> str | None:
+    if not username:
+        return None
+    user = load_config()["credentials"]["usernames"].get(username.strip().lower())
+    from security.crypto import decrypt_text
+    return decrypt_text((user or {}).get("mfa_secret")) or None
+
+
+def set_mfa_secret(username: str, secret: str | None) -> None:
+    """Turn TOTP on (secret) or off (None) for a user."""
+    with _file_lock:
+        data = load_config()
+        user = data["credentials"]["usernames"].get(username.strip().lower())
+        if user is None:
+            raise ValueError(f"No account named '{username}'.")
+        if secret:
+            from security.crypto import encrypt_text
+            user["mfa_secret"] = encrypt_text(secret)       # encrypted at rest
+        else:
+            user.pop("mfa_secret", None)
+        save_config(data)
+
+
+def list_users() -> list[dict]:
+    """[{username, name, email, roles, mfa}] - for the admin page (no hashes)."""
+    users = load_config()["credentials"]["usernames"]
+    return [{"username": name, "name": u.get("name", ""), "email": u.get("email", ""),
+             "roles": list(u.get("roles") or DEFAULT_ROLES), "mfa": bool(u.get("mfa_secret"))}
+            for name, u in users.items()]

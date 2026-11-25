@@ -1,0 +1,8 @@
+role: operations
+display_name: Operations
+topics:
+  existing_workflow: How is this process run and supported day to day?
+  performance_availability: What hours must the system be available, and how fast must incidents be fixed?
+  exceptions: What manual workarounds exist today when things fail?
+  integrations: Which batch jobs or interfaces does operations monitor?
+  audit_reporting: Which operational reports do you rely on?

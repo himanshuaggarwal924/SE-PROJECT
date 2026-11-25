@@ -1,0 +1,89 @@
+[
+  {
+    "mode": "full",
+    "seconds": 1415,
+    "precision": 0.333,
+    "recall": 0.25,
+    "f1": 0.286,
+    "category_accuracy": 0.778,
+    "completeness": 0.545,
+    "hallucination_rate": 0.444,
+    "citation_correctness": 1.0,
+    "traceability_coverage": 0.889,
+    "flags": {
+      "unsupported_rule": 3,
+      "weak_citation": 4,
+      "missing_citation": 1,
+      "possible_hallucination": 1,
+      "uncited_number": 1,
+      "low_confidence": 1
+    },
+    "statements": [
+      "The system shall check applicant age, residency, and minimum monthly income against the specified thresholds.",
+      "The system shall perform credit assessment and return a credit score band.",
+      "The system shall log decisions and overrides with user, timestamp, and reason.",
+      "The system shall perform a credit assessment and return a credit score band for every loan application.",
+      "The system shall log decisions and overrides with user, timestamp, and reason for every loan application.",
+      "The system shall encrypt personal and financial data in transit and at rest.",
+      "The system shall log decisions and overrides with user, timestamp, and reason.",
+      "The system shall be available at least 99.9% of the time.",
+      "The system shall ensure compliance with relevant regulations and industry standards for data protection and security."
+    ]
+  },
+  {
+    "mode": "compact",
+    "seconds": 662,
+    "precision": 0.444,
+    "recall": 0.333,
+    "f1": 0.381,
+    "category_accuracy": 0.333,
+    "completeness": 0.636,
+    "hallucination_rate": 0.222,
+    "citation_correctness": 0.882,
+    "traceability_coverage": 1.0,
+    "flags": {
+      "invalid_citation": 2,
+      "weak_citation": 3,
+      "low_confidence": 3,
+      "uncited_number": 2
+    },
+    "statements": [
+      "The system shall verify the applicant's identity and KYC information before making a loan decision.",
+      "The system shall pull a credit bureau report for every application and refresh reports older than 30 days.",
+      "The system shall log all decisions, overrides, and data changes with user, timestamp, and reason, and retain logs for 7 years.",
+      "The system shall verify the applicant's minimum monthly income from payslips or bank statements covering the last 3 months.",
+      "The system shall log all decisions, overrides, and data changes with user, timestamp, and reason, and retain logs for 7 years.",
+      "The system shall encrypt personal and financial data in transit and at rest.",
+      "The system shall log all decisions, overrides, and data changes with user, timestamp, and reason, and retain logs for 7 years.",
+      "The system shall ensure that all decisions, overrides, and data changes are logged within 2 business days.",
+      "The system shall ensure that all decisions, overrides, and data changes are logged within 2 business days."
+    ]
+  },
+  {
+    "mode": "compact",
+    "seconds": 282,
+    "precision": 0.444,
+    "recall": 0.333,
+    "f1": 0.381,
+    "category_accuracy": 0.375,
+    "completeness": 0.455,
+    "hallucination_rate": 0.111,
+    "citation_correctness": 0.938,
+    "traceability_coverage": 1.0,
+    "flags": {
+      "weak_citation": 3,
+      "invalid_citation": 1
+    },
+    "statements": [
+      "The system shall verify applicant eligibility based on minimum monthly income and maximum debt-to-income ratio.",
+      "The system shall pull a credit bureau report for every application and refresh reports older than 30 days.",
+      "The system shall log decisions, overrides, and data changes with user, timestamp, and reason, and retain logs for 7 years.",
+      "The system shall verify applicant eligibility based on minimum monthly income and maximum debt-to-income ratio.",
+      "The system shall pull a credit bureau report for every application and refresh reports older than 30 days.",
+      "The system shall encrypt personal and financial data in transit and at rest.",
+      "The system shall log decisions, overrides, and data changes with user, timestamp, and reason, and retain logs for 7 years.",
+      "The system shall ensure that all decisions, overrides, and data changes are logged with user, timestamp, and reason, and that logs are retained for 7 years.",
+      "The system shall encrypt personal and financial data in transit and at rest."
+    ]
+  }
+]

@@ -1,12 +1,43 @@
+# --- Python / tools ----------------------------------------------------------
 .venv/
+venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 
-# Created at runtime
+# --- Created at runtime (never commit) ------------------------------------
+# audit trail of real use
 logs/
+# ChromaDB + KB index caches
 vector_store/
+# downloaded embedding model
 models/
+# SQLite app database + LangGraph checkpoints
+data/
+# transcripts saved as files before Phase 7 (and their *.migrated copies)
+interviews/
+*.migrated
+# evaluation results and run_demo.py --artefacts output
+evaluation/results/*
+!evaluation/results/.gitkeep
+out/
 
-# Local user accounts (password hashes + cookie secret) - never commit
+# Any database file, wherever it ends up
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sqlite-journal
+
+# --- Secrets (never commit) --------------------------------------------------
+# Local user accounts: password hashes, security answers, 2FA secrets, cookie key
 auth/users.yaml
 auth/users.tmp
+# Encryption key file (normally outside the repo, see config.ENCRYPTION_KEY_FILE)
+*.key
+secret.key
+secrets/
+.env
+.env.*
+
+docs/Problem_Statement_1.docx
