@@ -142,36 +142,6 @@ Prompts are editable YAML files in [prompts/](prompts/). The knowledge base is M
 
 ---
 
-## Security notes
-
-- **Masking:** PAN, Aadhaar, card numbers (Luhn-checked), IFSC, account numbers, phone numbers,
-  emails and names in labelled fields are replaced by placeholders (`<PAN_1>`) before anything
-  is logged, embedded or sent to the model. A final guard inside `llm_service.chat()` masks
-  again. Only counts are recorded.
-- **Prompt injection:** all data is wrapped in `<<<DATA>>>` delimiters with a system-prompt
-  rule; suspicious excerpts are quarantined and reported.
-- **Least privilege:** each agent sees only the state fields it declares and may only write its
-  own output.
-- **Audit trail:** `logs/audit_log.jsonl`, with every record hash-chained to the previous one.
-  It includes agent prompts and outputs, human decisions with before/after values, access
-  denials, masking counts, versions and purges. Verify it with `python -m audit_log verify`.
-  Without a secret key the chain detects naive tampering, not an attacker who recomputes every
-  hash.
-- **Accounts:** bcrypt hashes in the git-ignored `auth/users.yaml`; optional TOTP 2FA; login
-  and reset attempts are rate-limited.
-- **Encryption at rest:** Fernet. The key file is kept **outside the repository**
-  (`~/.finreq_agents/secret.key`, or set `FINREQ_KEY_FILE`). It covers 2FA secrets,
-  transcripts, approvals, baselines, change requests, history, stored artefacts, satisfaction
-  comments and the LangGraph checkpoints. **Back the key up: encrypted data can't be read
-  without it.** `python -m security.crypto status` shows the key file;
-  `python -m security.crypto encrypt-existing` encrypts data stored before this was turned on.
-  The audit log stays plaintext so it can be verified (it holds masked text only).
-- **Data:** `data/` (SQLite), `logs/`, `vector_store/` and `models/` are git-ignored, and so are
-  database, key, `.env` and account files anywhere. See `auth/users.example.yaml` for the shape
-  of the accounts file. Retention purge: Administration page or `python -m security.retention`.
-
----
-
 ## Evaluation
 
 `run_eval.py` runs the full system and a **single-prompt, no-RAG baseline** (same model, one
@@ -216,14 +186,4 @@ tests/                                pytest suite with a mock LLM
 docs/                                 progress log, problem-statement coverage
 ```
 
-## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| "Ollama is not running" | Start the Ollama app (or `ollama serve`) and refresh. |
-| Very slow runs | Free RAM (the model needs ≈2.6 GB); fewer requirements; turn optional agents off. |
-| "Another run is already in progress" | One run at a time (Ollama serves one request at a time). |
-| A run waits for review | Open it from "runs waiting for your review"; the right roles must decide. |
-| SDLC review never finishes | All four roles (PM, architect, security, compliance) must vote. |
-| Lost 2FA phone | An admin resets 2FA on the Administration page. |
-| "No text found" in a PDF | Scanned image without a text layer – OCR isn't supported. |
